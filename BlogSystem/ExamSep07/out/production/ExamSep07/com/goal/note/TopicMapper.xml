@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.goal.mapper.TopicMapper">
+
+    <select id="retrieveAllTopics" resultType="SysTopic">
+        SELECT *
+        FROM sys_topic
+        ORDER BY createdate DESC
+    </select>
+
+    <insert id="createTopic" parameterType="SysTopic">
+        INSERT INTO sys_topic VALUES (default, #{title}, #{content}, #{author}, #{createDate}, 0)
+    </insert>
+
+
+    <!--
+    这种方是查询话题信息有问题，问题在于对一个话题来说，如果它已经有回复信息了，那么这个sql语句可以找到对应的信息
+    但是如果一个话题还没有对应的回复信息，那么这个sql语句找不到记录，即返回值为null，而实际上，即使没有回复信息，
+    也应该查得到话题的信息才对，因此放弃了使用这种方式查询，改为了业务装配方式来实现
+    ref ： com.goal.mapper.TopicMapper.xml
+    -->
+    <resultMap id="rm1" type="com.goal.pojo.SysTopic">
+        <id property="topicId" column="topicid"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="author" column="author"/>
+        <result property="createDate" column="createdate"/>
+        <result property="clickAmount" column="clickamount"/>
+        <collection property="replyList" ofType="com.goal.pojo.SysReply">
+            <id property="replyId" column="replyid"/>
+            <result property="topicId" column="rtid"/>
+            <result property="author" column="rauthor"/>
+            <result property="content" column="rcontent"/>
+            <result property="createDate" column="rdate"/>
+        </collection>
+    </resultMap>
+    <select id="retrieveTopicById" resultMap="rm1">
+        SELECT
+            t.*,
+            r.replyid,
+            r.topicid    rtid,
+            r.author     rauthor,
+            r.content    rcontent,
+            r.createdate rdate
+        FROM sys_topic t
+            JOIN sys_reply r ON t.topicid = r.topicid
+        WHERE t.topicid = #{topicId}
+    </select>
+
+    <insert id="updateClicks" parameterType="int">
+        UPDATE sys_topic
+        SET clickamount = clickamount + 1
+        WHERE topicid = #{topicId}
+    </insert>
+
+</mapper> 
